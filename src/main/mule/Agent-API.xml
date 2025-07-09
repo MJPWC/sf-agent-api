@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd   http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+    <http:listener-config name="Agent-API-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="Agent-API-config" api="resource::0b27cf32-a1fa-43d2-a04a-8afad7cdb50f:agent-api:1.0.2:raml:zip:Agent-API.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <api-gateway:autodiscovery apiId="20424422" flowRef="Agent-API-main" doc:name="Autodiscovery" />
+    <flow name="Agent-API-main">
+        <http:listener config-ref="Agent-API-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="Agent-API-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="Agent-API-console">
+        <http:listener config-ref="Agent-API-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="Agent-API-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\agent:application\json:Agent-API-config">
+        <ee:transform doc:id="zxnuxa" doc:name="Transform">
+            <ee:message>
+                <ee:set-payload doc:id="fpqemv" doc:name="Set payload"><![CDATA[%dw 2.0
+        output application/json
+        ---
+      payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <set-variable doc:id="1f5c2a6c-8c5b-4a8e-8d1e-2f4b5a6c7d8e" doc:name="Set Format Variable" value="#[attributes.queryParams.format]" variableName="format" />
+        <choice doc:id="d2e7c4a9-7b8f-4f8b-8d5e-9c6e7f8b9a0d" doc:name="Choice Based on Format">
+            <when expression="#[vars.format == &quot;raml&quot;]">
+                <logger doc:id="e7b8c9d0-8f7e-4b9d-8e5f-0f9e8b7c6d5a" doc:name="Logger" level="INFO" message="Format is RAML" />
+                <ee:transform doc:id="gmfmtw" doc:name="Transform">
+                    <ee:message>
+                        <ee:set-payload doc:id="uwwvhj" doc:name="Set payload"><![CDATA[%dw 2.0
+output application/yaml skipNullOn="everywhere"
+---
+{
+'title': payload.title default "API",
+'version': payload.version default "",
+'baseUri': payload.baseURI default "",
+'types': {},
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <ee:transform doc:id="hbeetc" doc:name="Transform">
+                    <ee:message>
+                        <ee:set-payload doc:id="ovvdpe" doc:name="Set payload"><![CDATA[%dw 2.0
+output application/java
+var pld = (write(payload, "application/yaml"))
+---
+pld replace '%YAML 1.2' with '#%RAML 1.0']]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <!-- Additional processing for RAML format -->
+            </when>
+            <when expression="#[vars.format == &quot;yaml&quot;]">
+                <logger doc:id="f8c9d0e1-9f8e-4b9d-9e5f-1f0e9b8c7d6a" doc:name="Logger" level="INFO" message="Format is YAML" />
+                <ee:transform doc:id="kuxghm2" doc:name="Transform">
+                    <ee:message>
+                        <ee:set-payload doc:id="hdxwrp2" doc:name="Set payload"><![CDATA[%dw 2.0
+output application/yaml skipNullOn="everywhere"
+---
+{
+    'openapi': '3.0.0',
+    'info': {
+        'title': payload.title,
+        'version': payload.version 
+        }
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <ee:transform doc:id="epyeop1" doc:name="Transform">
+                    <ee:message>
+                        <ee:set-payload doc:id="dhqdkz2" doc:name="Set payload"><![CDATA[%dw 2.0
+output application/java
+var pld = (write(payload, "application/yaml"))
+---
+trim((pld replace '%YAML 1.2' with '' ) replace '---' with '')]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <!-- Additional processing for YAML format -->
+            </when>
+            <otherwise>
+                <raise-error description="Invalid Format" doc:id="g9d0e1f2-0f9e-4b9d-0e5f-2f1e0b9c8d7a" doc:name="Raise error" type="CUSTOM:BAD_REQUEST" />
+            </otherwise>
+        </choice>
+    </flow>
+</mule>
