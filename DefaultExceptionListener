@@ -1,0 +1,8 @@
+/agents:
+  get:
+    queryParameters:
+      format:
+        type: string
+        enum: [json, xml]  # Check these exact values
+        required: false
+        default: json
