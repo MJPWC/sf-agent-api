@@ -1,0 +1,13 @@
+/agent:
+    get:
+      description: Retrieve agent details
+      responses:
+        200:
+          body:
+            application/json:
+              example: |
+                {
+                  "agentId": "12345",
+                  "name": "John Doe",
+                  "status": "active"
+                }
